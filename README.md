@@ -5,213 +5,167 @@
 
 ## 📖 Overview
 
-The **Pipex** project aims to help you understand and implement one of the most fundamental UNIX mechanisms — **pipes**.
-Your goal is to reproduce the behavior of the following shell command inside your own C program:
+**Pipex** is a project designed to help you understand how data is passed between processes in Unix systems using **pipes** and **file descriptors**.
+You will recreate the behavior of this shell command:
 
-```bash
-< file1 cmd1 | cmd2 > file2
+```
+< infile cmd1 | cmd2 > outfile
 ```
 
-This project teaches process creation, input/output redirection, and inter-process communication using **pipes** and **forks**.
+Your program will read from a file, execute two commands connected by a pipe, and write the output to another file.
 
 ---
 
-## ⚙️ Program Information
+## 🎯 Objectives
 
-| Element                | Description                     |
-| ---------------------- | ------------------------------- |
-| **Program name**       | `pipex`                         |
-| **Files to turn in**   | `Makefile`, `*.c`, `*.h`        |
-| **Allowed libraries**  | `libft` (your own)              |
-| **Compilation flags**  | `-Wall -Wextra -Werror`         |
-| **Executable example** | `./pipex file1 cmd1 cmd2 file2` |
+* Learn how to handle **files** (`open`, `close`)
+* Create and manage **processes** (`fork`)
+* Connect processes through **pipes**
+* Redirect **input and output** using `dup2`
+* Execute commands with `execve`
+* Manage **PATH** environment variable
+* Handle **errors** and **memory management** properly
 
 ---
 
-## 🧠 Project Description
+## 🧱 Program Structure
 
-Your program must reproduce the same behavior as:
+The program must be executed as follows:
 
-```bash
-< file1 cmd1 | cmd2 > file2
+```
+./pipex infile cmd1 cmd2 outfile
 ```
 
-That means:
+It must produce the same output as this shell command:
 
-1. The program reads input from `file1`.
-2. It executes `cmd1` using that input.
-3. The output of `cmd1` is piped as input to `cmd2`.
-4. The result of `cmd2` is written into `file2`.
-
-### Example
-
-```bash
-./pipex infile "ls -l" "wc -l" outfile
 ```
-
-is equivalent to:
-
-```bash
-< infile ls -l | wc -l > outfile
-```
-
-Another example:
-
-```bash
-./pipex infile "grep a1" "wc -w" outfile
-```
-
-is equivalent to:
-
-```bash
-< infile grep a1 | wc -w > outfile
+< infile cmd1 | cmd2 > outfile
 ```
 
 ---
 
-## 🔧 Mandatory Requirements
+## ⚙️ How It Works
 
-* The program must:
-
-  * Take **4 arguments**: `file1 cmd1 cmd2 file2`
-  * Create a **pipe** to connect the two commands.
-  * **Fork** child processes for each command.
-  * Use **dup2()** to redirect input/output properly.
-  * **Wait** for child processes to finish before exiting.
-* You must handle errors exactly as the shell would do.
-* The program must not crash or leak memory.
+1. The program opens the input file (`infile`) for reading.
+2. It executes the first command (`cmd1`) and redirects its output to the pipe.
+3. It executes the second command (`cmd2`) and redirects its input from the pipe.
+4. The final output is written into the output file (`outfile`).
+5. All file descriptors must be properly closed, and no memory leaks should occur.
 
 ---
 
-## 🧰 Allowed Functions
+## 🧠 Technical Details
 
-You are allowed to use only the following system functions:
+* The program must use **one pipe** only.
+* Each command must be executed in a **separate child process** created with `fork`.
+* Redirections are done using `dup2()` to map standard input/output to files or pipes.
+* The program must find the **absolute path** of each command by parsing the `PATH` environment variable.
+* It should handle **invalid commands** or **file access errors** gracefully.
+
+---
+
+## 🧩 Handling PATH
+
+To execute a command like `ls`, your program must search for it inside the directories listed in the `PATH` environment variable, for example:
 
 ```
-open, close, read, write, malloc, free,
-perror, strerror, access, dup, dup2,
-execve, exit, fork, pipe, unlink,
-wait, waitpid
+/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
 ```
 
-You can also use your own implementation of `ft_printf` or equivalent, and your own `libft`.
+The first accessible executable file found should be used.
 
 ---
 
-## 🧱 Program Structure (Suggested)
+## ✅ Allowed Functions
 
-Your program can be divided into logical parts:
+You are allowed to use the following system calls and library functions:
 
-| File              | Responsibility                                                |
-| ----------------- | ------------------------------------------------------------- |
-| **pipex.c**       | Main logic: argument parsing, fork handling, pipes setup      |
-| **pipex_utils.c** | Helper functions for path resolution, string operations, etc. |
-| **process.c**     | Command execution and redirection                             |
-| **error.c**       | Error handling (print error messages, exit codes)             |
-| **pipex.h**       | Function prototypes and struct definitions                    |
+`open`, `close`, `read`, `write`, `malloc`, `free`, `perror`, `strerror`, `access`, `dup`, `dup2`, `execve`, `exit`, `fork`, `pipe`, `unlink`, `wait`, `waitpid`
 
----
-
-## 🧩 How It Works (Simplified Steps)
-
-1. **Open input and output files**
-
-   * `infile` with `O_RDONLY`
-   * `outfile` with `O_CREAT | O_WRONLY | O_TRUNC`
-2. **Create a pipe** using `pipe(fd)`.
-3. **Fork** two child processes:
-
-   * **First child:** redirects `stdin` from `file1`, and `stdout` to the pipe’s write end.
-   * **Second child:** redirects `stdin` from the pipe’s read end, and `stdout` to `file2`.
-4. **Execute commands** with `execve()`.
-5. **Parent process:** closes all file descriptors and waits for both children using `waitpid()`.
+Additionally, you **may use your own Libft** library.
 
 ---
 
 ## 🚫 Forbidden
 
-* Using global variables.
-* Using any other system functions not listed above.
-* Using any external libraries other than your own `libft`.
+* `get_next_line`
+* `printf` or any external library functions
+* `system()`, `popen()`, or similar functions
+* Global variables
 
 ---
 
-## 🧪 Example Execution
+## 🧾 Compilation
 
-### Command:
+Your Makefile must include the following rules:
 
-```bash
-./pipex infile "cat -e" "wc -l" outfile
+* `NAME`
+* `all`
+* `clean`
+* `fclean`
+* `re`
+
+Compilation flags:
+
+```
+-Wall -Wextra -Werror
 ```
 
-### Equivalent shell behavior:
-
-```bash
-< infile cat -e | wc -l > outfile
-```
-
-### Result:
-
-* `outfile` will contain the number of lines (as counted by `wc -l`) from `infile`.
+Unnecessary relinking is not allowed.
 
 ---
 
-## 🧾 Compilation Example
+## 🧪 Example Usage
 
-```bash
-make
-./pipex file1 "grep test" "wc -l" file2
-```
-
-or manually:
-
-```bash
-cc -Wall -Wextra -Werror pipex.c pipex_utils.c -o pipex
-```
+| Command                                       | Equivalent Shell Command |                  |
+| --------------------------------------------- | ------------------------ | ---------------- |
+| `./pipex infile "ls -l" "wc -l" outfile`      | `< infile ls -l          | wc -l > outfile` |
+| `./pipex infile "grep hello" "wc -w" outfile` | `< infile grep hello     | wc -w > outfile` |
 
 ---
 
-## ✅ Evaluation Checklist
+## ⚡ Error Handling
 
-| Requirement                         | Status |
-| ----------------------------------- | ------ |
-| Handles `file1 cmd1 cmd2 file2`     | ✅      |
-| No memory leaks                     | ✅      |
-| Uses only allowed functions         | ✅      |
-| Correct behavior identical to shell | ✅      |
-| Proper error handling               | ✅      |
+Your program must:
+
+* Display an error message (via `perror` or `strerror`) when a file or command cannot be accessed.
+* Exit gracefully without segmentation faults or crashes.
+* Avoid any memory leaks or file descriptor leaks.
 
 ---
 
-## 🧠 Tips for Defense
+## 🧩 Execution Flow Summary
 
-* Be ready to explain:
-
-  * How `pipe()` and `fork()` work.
-  * How file descriptors are duplicated with `dup2()`.
-  * How `execve()` replaces the current process image.
-  * Why you must close unused ends of the pipe.
-* Prepare tests for:
-
-  * Invalid commands.
-  * Missing files.
-  * Permission denied cases.
-  * Empty input.
+1. Check if the correct number of arguments is provided.
+2. Open `infile` and `outfile`.
+3. Create a pipe.
+4. Fork a child process to execute `cmd1`.
+5. Fork another child process to execute `cmd2`.
+6. Close all file descriptors in the parent process.
+7. Wait for both child processes to finish (`waitpid`).
 
 ---
 
-## 📚 Summary
+## 🧭 Summary Table
 
-| Aspect       | Description                              |                        |
-| ------------ | ---------------------------------------- | ---------------------- |
-| Project name | Pipex                                    |                        |
-| Language     | C                                        |                        |
-| Main concept | UNIX Pipes                               |                        |
-| Commands     | `pipe()`, `fork()`, `dup2()`, `execve()` |                        |
-| Goal         | Reproduce `< file1 cmd1                  | cmd2 > file2` behavior |
-| Errors       | Must handle like the shell               |                        |
-| Memory       | No leaks                                 |                        |
-| Output       | Identical to shell redirection behavior  |                        |
+| Item              | Description                                            |
+| ----------------- | ------------------------------------------------------ |
+| Program name      | `pipex`                                                |
+| Commands handled  | 2                                                      |
+| Pipes used        | 1                                                      |
+| Input → Output    | `infile` → `cmd1` → `cmd2` → `outfile`                 |
+| Allowed functions | Listed system calls + Libft                            |
+| Forbidden         | `get_next_line`, `printf`, `system`                    |
+| Goal              | Reproduce pipe and process behavior of a shell command |
 
 ---
 
+## 🔍 Tips for Evaluation
+
+* Ensure no **memory leaks** (check with `valgrind`).
+* Always **close** unused file descriptors.
+* Match shell behavior exactly — test your program with different files and commands.
+* Be ready to explain every system call you used (`fork`, `pipe`, `dup2`, etc.) during the evaluation.
+* Use meaningful error messages for invalid commands or missing files.
+
+---
